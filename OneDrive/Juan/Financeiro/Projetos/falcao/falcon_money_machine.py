@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import calendar
 from datetime import datetime, date
+from pathlib import Path  # <- adicionado
 
 # --- Autenticação simples ---
 st.set_page_config(page_title="Falcon Money Machine", layout="wide")
@@ -11,7 +12,9 @@ st.set_page_config(page_title="Falcon Money Machine", layout="wide")
 USER = "The_Falcon"
 PASS = "Falcao@3"
 with st.sidebar:
-    st.image("logo.png", width=160)
+    # Caminho seguro para imagem da logo
+    logo_path = Path(__file__).parent / "logo.png"
+    st.image(str(logo_path), width=160)
     st.markdown("### Login")
 
     username = st.text_input("Usuário")
