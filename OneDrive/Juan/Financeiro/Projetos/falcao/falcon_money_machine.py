@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import calendar
 from datetime import datetime, date
+from io import BytesIO
+from PIL import Image
+import os
 
 # --- Autenticação simples ---
 st.set_page_config(page_title="Falcon Money Machine", layout="wide")
@@ -11,9 +14,18 @@ st.set_page_config(page_title="Falcon Money Machine", layout="wide")
 USER = "The_Falcon"
 PASS = "Falcao@3"
 with st.sidebar:
-    st.image("logo.png", width=160)
-    st.markdown("### Login")
+    # --- Bloco robusto para carregar a logo ---
+    logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+    try:
+        with open(logo_path, "rb") as f:
+            logo_bytes = BytesIO(f.read())
+            image = Image.open(logo_bytes)
+            st.image(image, width=160)
+    except Exception as e:
+        st.warning("Logo não carregada. Verifique o arquivo 'logo.png'.")
+        st.write(f"Erro: {e}")
 
+    st.markdown("### Login")
     username = st.text_input("Usuário")
     password = st.text_input("Senha", type="password")
     login = st.button("Entrar")
@@ -26,7 +38,7 @@ if not (username == USER and password == PASS):
 url = 'https://docs.google.com/spreadsheets/d/1ATDFQNUeNvXs-kYDtet9ZdFEIdzOJeeaTUNVJEDtn0s/export?format=xlsx'
 df = pd.read_excel(url)
 
-# --- Ajuste de NOMES de coluna automaticamente ---
+# --- Ajuste de nomes de coluna ---
 colunas = {c.lower().strip(): c for c in df.columns}
 nome_data = next((colunas[c] for c in colunas if 'data' in c), None)
 nome_valor = next((colunas[c] for c in colunas if 'valor' in c), None)
@@ -44,10 +56,10 @@ df['valor'] = pd.to_numeric(df['valor'], errors='coerce')
 df = df.dropna(subset=['data', 'valor']).copy()
 df['mes'] = df['data'].dt.to_period("M").astype(str)
 
-# --- Customização de cores e títulos ---
+# --- Cores e títulos ---
 CUSTOM_BG = '#181C20'
 TITULO_COR = 'white'
-SUBTITULO_COR = '#48a0ff'
+SUBTITULO_COR = '#48a0ff'   
 METRIC_COR = 'white'
 GRAF_COR = "#003366"
 GRAF_AUX_COR = "#48a0ff"
@@ -63,7 +75,7 @@ st.markdown(
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"<span style='color:{TITULO_COR};'>Selecione o mês</span>", unsafe_allow_html=True)
 
-# --- FILTRO DE MÊS ---
+# --- Filtro de mês ---
 meses_disponiveis = sorted(df['mes'].unique())
 if not meses_disponiveis:
     st.warning("Nenhum dado encontrado na base.")
@@ -71,23 +83,20 @@ if not meses_disponiveis:
 mes_selecionado = st.sidebar.selectbox("Mês:", meses_disponiveis, index=len(meses_disponiveis)-1)
 df_mes = df[df['mes'] == mes_selecionado].copy()
 
-# --- DADOS PARA RESUMO DO MÊS ---
+# --- Dados para resumo ---
 ano, mes = map(int, mes_selecionado.split('-'))
 primeiro_dia = date(ano, mes, 1)
 ultimo_dia = calendar.monthrange(ano, mes)[1]
 ultimo_dia_mes = date(ano, mes, ultimo_dia)
 datas_do_mes = pd.date_range(primeiro_dia, ultimo_dia_mes)
 hoje = date.today()
-if (ano < hoje.year) or (ano == hoje.year and mes < hoje.month):
-    dias_restantes = 0
-else:
-    dias_restantes = max((ultimo_dia_mes - hoje).days + 1, 0) if (ano == hoje.year and mes == hoje.month) else ultimo_dia
+dias_restantes = max((ultimo_dia_mes - hoje).days + 1, 0) if (ano == hoje.year and mes == hoje.month) else 0
 total_entradas = df_mes[df_mes['valor'] > 0]['valor'].sum()
 total_saidas = df_mes[df_mes['valor'] < 0]['valor'].sum()
 saldo_final_mes = total_entradas + total_saidas
 valor_por_dia = saldo_final_mes / dias_restantes if dias_restantes > 0 else 0
 
-# --- RESUMO DO MÊS ---
+# --- Métricas do mês ---
 st.markdown(f"<h3 style='color:{TITULO_COR};'>Resumo do mês selecionado</h3>", unsafe_allow_html=True)
 col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("Entradas (R$)", f"{total_entradas:,.2f}".replace('.', 'X').replace(',', '.').replace('X', ','))
@@ -96,7 +105,7 @@ col3.metric("Saldo Final (R$)", f"{saldo_final_mes:,.2f}".replace('.', 'X').repl
 col4.metric("Dias p/ fim do mês", str(dias_restantes))
 col5.metric("Saldo/dia restante", f"R$ {valor_por_dia:,.2f}".replace('.', 'X').replace(',', '.').replace('X', ','))
 
-# --- GRÁFICO POR CATEGORIA ---
+# --- Gráfico por categoria ---
 st.markdown(f"<h3 style='color:{TITULO_COR};'>Gastos por categoria (apenas despesas)</h3>", unsafe_allow_html=True)
 gcat = df_mes[df_mes['valor'] < 0].groupby('categoria')['valor'].sum().sort_values()
 if not gcat.empty:
@@ -118,7 +127,7 @@ else:
     st.info("Nenhuma despesa registrada para esse mês.")
 st.markdown("---")
 
-# --- TABELA DE GASTOS ---
+# --- Tabela de gastos ---
 st.markdown(f"<h3 style='color:{TITULO_COR};'>Tabela de gastos</h3>", unsafe_allow_html=True)
 categorias_unicas = df_mes['categoria'].unique()
 cat_filtrada = st.selectbox("Filtrar categoria:", np.append(["Todas"], categorias_unicas))
@@ -127,14 +136,14 @@ if cat_filtrada == "Todas":
     total_filtro = df_mes["valor"].sum()
 else:
     df_tabela = df_mes[df_mes['categoria'] == cat_filtrada].copy()
-    total_filtro = df_mes[df_mes["categoria"] == cat_filtrada]["valor"].sum()
+    total_filtro = df_tabela["valor"].sum()
 df_tabela['data'] = df_tabela['data'].dt.strftime('%d/%m/%Y')
 df_tabela['valor'] = df_tabela['valor'].apply(lambda x: f"{x:,.2f}".replace('.', 'X').replace(',', '.').replace('X', ','))
 st.dataframe(df_tabela[["data", "categoria", "valor"]], use_container_width=True)
 st.info(f"Total do filtro atual: R$ {total_filtro:,.2f}".replace('.', 'X').replace(',', '.').replace('X', ','))
 st.markdown("---")
 
-# --- FLUXO DE CAIXA DO MÊS ---
+# --- Fluxo de caixa ---
 st.markdown(f"<h3 style='color:{TITULO_COR};'>Fluxo de Caixa do mês</h3>", unsafe_allow_html=True)
 cats_entradas = [c for c in df_mes['categoria'].unique() if df_mes[df_mes['categoria'] == c]['valor'].sum() > 0]
 cats_saidas = [c for c in df_mes['categoria'].unique() if c not in cats_entradas]
@@ -170,10 +179,7 @@ def format_br(x):
         return ""
 
 matriz_final.columns = [d.strftime('%d/%m/%Y') for d in matriz_final.columns]
-st.dataframe(
-    matriz_final.style.format(format_br),
-    use_container_width=True
-)
+st.dataframe(matriz_final.style.format(format_br), use_container_width=True)
 
 st.caption("Entradas, linha separadora, saídas e saldo final até o último dia do mês. Painel largo e funcional.")
 st.sidebar.caption("Use o painel para tomar decisões melhores.")
