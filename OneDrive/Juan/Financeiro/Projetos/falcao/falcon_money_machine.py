@@ -11,7 +11,7 @@ st.set_page_config(page_title="Falcon Money Machine", layout="wide")
 USER = "The_Falcon"
 PASS = "Falcao@3"
 with st.sidebar:
-    st.image("./Logo/logo.png", width=160)
+    st.image("logo.png", width=160)
     st.markdown("### Login")
 
     username = st.text_input("Usuário")
