@@ -5,10 +5,29 @@ import numpy as np
 import calendar
 from datetime import datetime, date
 
+# --- Login simples ---
+def autenticar():
+    with st.sidebar:
+        st.header("🔒 Acesso Restrito")
+        usuario = st.text_input("Usuário")
+        senha = st.text_input("Senha", type="password")
+        if st.button("Entrar"):
+            if usuario == "The_Falcon" and senha == "Falcao@3":
+                st.session_state['autenticado'] = True
+            else:
+                st.error("Usuário ou senha inválidos")
+
+if 'autenticado' not in st.session_state or not st.session_state['autenticado']:
+    autenticar()
+    st.stop()
+
+# --- Logo ---
+st.sidebar.image("Logo/logo.png", width=160)
+
 # --- URL da planilha pública do cliente Falcão ---
 URL_DADOS = 'https://docs.google.com/spreadsheets/d/1ATDFQNUeNvXs-kYDtet9ZdFEIdzOJeeaTUNVJEDtn0s/export?format=csv'
 
-# --- Leitura da planilha, tratamento automático ---
+# --- Leitura da planilha ---
 try:
     df = pd.read_csv(URL_DADOS)
 except Exception as e:
@@ -42,7 +61,7 @@ GRAF_COR = "#003366"
 GRAF_AUX_COR = "#48a0ff"
 
 st.markdown(
-    f"<h1 style='color:{TITULO_COR}; font-size:2.7rem;'>Fluxo de Caixa Pessoal — Painel Juan</h1>",
+    f"<h1 style='color:{TITULO_COR}; font-size:2.7rem;'>Fluxo de Caixa — Cliente Falcão</h1>",
     unsafe_allow_html=True
 )
 st.markdown(
