@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import calendar
 from datetime import datetime, date
-from pathlib import Path  # <- adicionado
 
 # --- Autenticação simples ---
 st.set_page_config(page_title="Falcon Money Machine", layout="wide")
@@ -12,9 +11,7 @@ st.set_page_config(page_title="Falcon Money Machine", layout="wide")
 USER = "The_Falcon"
 PASS = "Falcao@3"
 with st.sidebar:
-    # Caminho seguro para imagem da logo
-    logo_path = Path(__file__).parent / "logo.png"
-    st.image(str(logo_path), width=160)
+    st.image("logo.png", width=160)
     st.markdown("### Login")
 
     username = st.text_input("Usuário")
@@ -43,7 +40,8 @@ df = df.rename(columns={nome_data: 'data', nome_valor: 'valor', nome_categoria: 
 
 # --- Ajustes de tipo ---
 df['data'] = pd.to_datetime(df['data'], dayfirst=True, errors='coerce')
-df = df[~df['data'].isna()].copy()
+df['valor'] = pd.to_numeric(df['valor'], errors='coerce')
+df = df.dropna(subset=['data', 'valor']).copy()
 df['mes'] = df['data'].dt.to_period("M").astype(str)
 
 # --- Customização de cores e títulos ---
