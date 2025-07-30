@@ -13,33 +13,36 @@ st.title("📊 Dashboard Financeiro - Falcão")
 try:
     df = pd.read_csv(url)
 
-    # Validação da existência das colunas
+    # Validação das colunas
     if not {'data', 'valor', 'categoria'}.issubset(df.columns):
         st.error("⚠️ A planilha deve conter as colunas: 'data', 'valor' e 'categoria'.")
         st.stop()
 
-    # Conversão da coluna 'data' para datetime
+    # Conversão de tipos
     df['data'] = pd.to_datetime(df['data'], errors='coerce')
-    df.dropna(subset=['data'], inplace=True)  # Remove linhas com datas inválidas
+    df['valor'] = pd.to_numeric(df['valor'], errors='coerce')
+
+    # Remover linhas inválidas
+    df.dropna(subset=['data', 'valor'], inplace=True)
 
     # Filtro por mês
     df['mes'] = df['data'].dt.to_period('M').astype(str)
     meses_disponiveis = df['mes'].unique().tolist()
     mes_selecionado = st.selectbox("Selecione o mês:", sorted(meses_disponiveis, reverse=True))
 
-    # Filtrando os dados do mês selecionado
+    # Filtrar dados do mês
     df_mes = df[df['mes'] == mes_selecionado]
     df_gastos = df_mes[df_mes['valor'] < 0]
 
-    # Agrupando os gastos por categoria
+    # Agrupar por categoria
     df_grouped = df_gastos.groupby('categoria')['valor'].sum().reset_index()
     df_grouped = df_grouped.sort_values(by='valor')
 
-    # Exibe os dados e o gráfico
+    # Tabela
     st.subheader(f"Gastos por Categoria - {mes_selecionado}")
     st.dataframe(df_grouped.style.format({"valor": "R$ {:,.2f}"}), use_container_width=True)
 
-    # Gráfico de barras
+    # Gráfico
     fig = px.bar(
         df_grouped,
         x='valor',
